@@ -106,4 +106,8 @@ function M.format()
   end
 end
 
+-- list configured lang
+function M.list()
+end
+
 return M

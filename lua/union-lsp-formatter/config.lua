@@ -15,4 +15,7 @@ function M.get()
   return M.config
 end
 
+function M.get_lang()
+end
+
 return M
