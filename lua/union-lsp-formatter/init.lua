@@ -1,17 +1,24 @@
 local M = {}
 
 ---@class LangConfig
----@field filetype ?string -- language name
+---@field name ?string -- language name
 ---@field lsp ?string -- lsp name
 ---@field lsp_config ?table -- configuration for lspconfig.LANG.setup()
 ---@field formatter ?string -- formatter name
----@field ft_config ?table<function> -- configuration for formatter filetype
+---@field fmt_config ?table<function> -- configuration for formatterm.filetype
 ---@field prettier_plugin ?string -- prettier plugin
 
 ---@class Config
+---@field auto_install ?boolean
+---@field default_lsp_conf ?table
+---@field default_fmt_conf ?table
 ---@field formatter_conf ?table -- formatter configuration
----@field lang_conf ?table<LangConfig> -- language configuration
+---@field languages ?table<LangConfig> -- language configuration
 
+
+---@class LangDescriptor
+---@field name string
+---@field backend "formatter.nvim" | "lsp-config" | nil
 
 -- Language configuration example:
 --
@@ -63,7 +70,7 @@ function M.setup(config)
   config = config or {}
 
   ---@type table<LangConfig>
-  config.lang_conf = config.lang_conf or {}
+  config.languages = config.languages or {}
 
   config.formatter_conf    = config.formatter_conf or {}
   config.formatter_conf.filetype = config.formatter_conf.filetype or {}
@@ -75,7 +82,7 @@ function M.setup(config)
     }
   }
 
-  for _, lang in pairs(config.lang_conf) do
+  for lang, lang_conf in pairs(config.languages) do
     -- init lspconfig for lang
     if (lang.lsp ~= nil) then
       lang.lsp_config = lang.lsp_config or {}
