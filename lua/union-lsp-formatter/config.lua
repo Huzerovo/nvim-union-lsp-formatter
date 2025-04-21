@@ -1,11 +1,30 @@
 local M = {}
 
+---@class LangConfig
+---@field name ?string -- a friendly name
+---@field filetype ?string -- specify a filetype
+---@field lsp ?string -- lsp backend name
+---@field lsp_config ?table -- configuration for lspconfig.LANG.setup()
+---@field fmt ?string -- formatter name, it can be the formatter.nvim default formatter for lang
+---@field fmt_config ?table -- configuration for formatterm.filetype
+---@field prettier_plugin ?string -- prettier plugin, if use "prettier" as formatter, you may need a prettier pluging
+
+---@class UnionConfig
+---@field auto_install ?boolean
+---@field install_path ?string
+---@field log_level ?number
+---@field default_lsp_conf ?table
+---@field formatter_conf ?table -- formatter configuration
+---@field languages ?table<string, LangConfig> -- language configuration
+
 ---@class UnionConfigLsp
+---@field name string
 ---@field filetype string
 ---@field lsp string
 ---@field conf table
 
 ---@class UnionConfigFmt
+---@field name string
 ---@field filetype string
 ---@field fmt string
 ---@field conf table
@@ -14,12 +33,22 @@ local M = {}
 local default_config = {
   auto_install = false,
   install_path = vim.fn.stdpath("data") .. "/union-lsp-formatter",
+  log_level = vim.log.levels.TRACE,
   default_lsp_conf = {
     capabilities = require('cmp_nvim_lsp').default_capabilities(),
   },
   formatter_conf = {},
   languages = {},
 }
+
+---@type UnionConfig
+M.config = default_config
+
+---@type table<UnionConfigLsp>
+M.config_lsp = {}
+
+---@type table<UnionConfigFmt>
+M.config_fmt = {}
 
 ---Deep merge user config and default config
 ---@param dst UnionConfig
@@ -52,17 +81,22 @@ end
 
 ---@param config UnionConfig
 function M.normalized(config)
-  ---@type UnionConfig
+  local utils = require('union-lsp-formatter.utils')
+  utils.log_debug("Loading configuration")
+
   M.config = table_merge(default_config, config)
   config = M.config
 
-  ---@type table<UnionConfigLsp>
-  M.config_lsp = {}
-  ---@type table<UnionConfigFmt>
-  M.config_fmt = {}
+  ---@type UnionConfigLsp | {}
+  local clsp = {}
 
+  ---@type UnionConfigFmt | {}
+  local cfmt = {}
+
+  ---@param ft string
   ---@param lang_conf LangConfig
   for ft, lang_conf in pairs(config.languages) do
+    ft = lang_conf.filetype or ft
     if lang_conf.lsp and lang_conf.lsp ~= "" then
       lang_conf.lsp_config = lang_conf.lsp_config or {}
 
@@ -71,44 +105,28 @@ function M.normalized(config)
         lang_conf.lsp_config = config.default_lsp_conf
       end
 
-      table.insert(M.config_lsp, {
+      clsp = {
+        name = lang_conf.name or ft,
         filetype = ft,
         lsp = lang_conf.lsp,
         conf = lang_conf.lsp_config
-      })
+      }
+      table.insert(M.config_lsp, clsp)
     elseif lang_conf.fmt and lang_conf.fmt ~= "" then
       lang_conf.fmt_config = lang_conf.fmt_config or {}
 
-      -- if fmt_config is empty, use preconfigured formatter in formatter.nvim
-      if not next(lang_conf.fmt_config) then
-        local fmt_filetype = require('formatter.filetype')
-        local fmt_default_formatter  = fmt_filetype[ft][lang_conf.fmt]
-        lang_conf.fmt_config = {
-            fmt_default_formatter
-        }
-      end
-
-      table.insert(M.config_fmt, {
-        filrtype = ft,
+      cfmt = {
+        name = lang_conf.name or ft,
+        filetype = ft,
         fmt = lang_conf.fmt,
         conf = lang_conf.fmt_config
-      })
+      }
+      table.insert(M.config_fmt, cfmt)
     end
   end -- for loop end
 
-  M.config = config
-end
-
-function M.get_config()
-  return M.config
-end
-
-function M.get_config_lsp()
-  return M.config_lsp
-end
-
-function M.get_config_fmt()
-  return M.config_fmt
+  M.config["_normalized"] = true
+  utils.log_debug("Configuration is loaded")
 end
 
 return M

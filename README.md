@@ -24,4 +24,35 @@ local config = {
         -- ...
     }
 }
+-- Language configuration example:
+--
+-- local formatter = require('formatter')
+-- {
+--   {
+--     name = "sh",
+--     -- configuration for lspconfig
+--     lsp = 'bashls',
+--     -- Pass to require('lspconfig').bashls.setup()
+--     lsp_config = {
+--        capabilities = require('cmp_nvim_lsp').default_capabilities,
+--     }
+--
+--     -- configuration for formatter.nvim
+--     prettier_plugin = "prettier-plugin-sh",
+--     formatter = '',
+--     fmt_config = {
+--       function()
+--        return {
+--          exe = 'prettier',
+--          args = {
+--            '--plugin',
+--            'prettier-plugin-sh',
+--            '--stdin-filepath',
+--            formatter.util.escape_path(util.get_current_buffer_file_path()),
+--          }
+--        }
+--       end
+--     }
+--   }
+-- }
 ```
