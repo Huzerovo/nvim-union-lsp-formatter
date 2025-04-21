@@ -4,14 +4,14 @@ local M = {}
 ---@field name ?string -- language name
 ---@field lsp ?string -- lsp name
 ---@field lsp_config ?table -- configuration for lspconfig.LANG.setup()
----@field formatter ?string -- formatter name
----@field fmt_config ?table<function> -- configuration for formatterm.filetype
----@field prettier_plugin ?string -- prettier plugin
+---@field fmt ?string -- formatter name, it can be the formatter.nvim default formatter for lang
+---@field fmt_config ?table -- configuration for formatterm.filetype
+---@field prettier_plugin ?string -- prettier plugin, if use "prettier" as formatter, you may need a prettier pluging
 
----@class Config
+---@class UnionConfig
 ---@field auto_install ?boolean
+---@field install_path ?string
 ---@field default_lsp_conf ?table
----@field default_fmt_conf ?table
 ---@field formatter_conf ?table -- formatter configuration
 ---@field languages ?table<LangConfig> -- language configuration
 
@@ -52,7 +52,7 @@ local M = {}
 --   }
 -- }
 
----@param config Config
+---@param config UnionConfig
 function M.setup(config)
   local lspconfig = require('lspconfig')
   local formatter = require('formatter')
@@ -69,34 +69,29 @@ function M.setup(config)
 
   config = config or {}
 
-  ---@type table<LangConfig>
-  config.languages = config.languages or {}
+  require("union-lsp-formatter.config").normalized(config)
+  config = require('union-lsp-formatter.config').get_config()
 
-  config.formatter_conf    = config.formatter_conf or {}
-  config.formatter_conf.filetype = config.formatter_conf.filetype or {}
+  ---@type table<UnionConfigLsp>
+  local config_lsp = require('union-lsp-formatter.config').get_config_lsp()
 
-  ---@type table
-  local lsp_config_mt = {
-    __index = {
-      capabilities = require('cmp_nvim_lsp').default_capabilities(),
-    }
-  }
-
-  for lang, lang_conf in pairs(config.languages) do
-    -- init lspconfig for lang
-    if (lang.lsp ~= nil) then
-      lang.lsp_config = lang.lsp_config or {}
-      setmetatable(lang.lsp_config, lsp_config_mt)
-      lspconfig[lang.lsp].setup(lang.lsp_config)
-    end
-    if (lang.name ~= nil) then
-      config.formatter_conf.filetype[lang.name] = lang.ft_config
-    end
-    --TODO: install prettier plugin
+  ---@param v UnionConfigLsp
+  for _, v in pairs(config_lsp) do
+    lspconfig[v.lsp].setup(v.conf)
   end
 
+  ---@type table<UnionConfigFmt>
+  local config_fmt = require('union-lsp-formatter.config').get_config_fmt()
+
+  config.formatter_conf.filetype = config.formatter_conf.filetype or {}
+  local filetype = config.formatter_conf.filetype
+
+  ---@param v UnionConfigFmt
+  for _, v in pairs(config_fmt) do
+    filetype[v.filetype] = v.conf
+  end
   formatter.setup(config.formatter_conf)
-  require('union-lsp-formatter.config').set(config)
+
 end
 
 function M.format()
@@ -118,3 +113,5 @@ function M.list()
 end
 
 return M
+
+-- vim: ts=2 sts=2 sw=2

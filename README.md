@@ -7,12 +7,13 @@
 ```lua
 local config = {
     auto_install = false,
+    install_path = "",
     default_lsp_conf = {},
-    default_fmt_conf = {},
     formatter_conf = {}, -- configuration for formatter, used in require('formatter').setup(config.formatter)
-    lang_conf = {
+    languages = {
         example_ft = {
             name = "", -- a friendly name
+
             lsp = "", -- lsp binary, if it is defined, use lspconfig as formatter
             lsp_conf = {}, -- lsp config
 
