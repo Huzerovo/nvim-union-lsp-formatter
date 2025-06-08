@@ -45,7 +45,7 @@ function M.setup(config)
       else
         filetypes[v.filetype] = v.conf
       end
-      manager.push(v.filetype ,{ name = v.filetype, backend = "formatter.nvim" })
+      manager.push(v.filetype, { name = v.filetype, backend = "formatter.nvim" })
     end
   end
   formatter.setup(config.formatter_conf)

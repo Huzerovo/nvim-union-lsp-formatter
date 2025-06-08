@@ -81,9 +81,6 @@ end
 
 ---@param config UnionConfig
 function M.normalized(config)
-  local utils = require('union-lsp-formatter.utils')
-  utils.log_debug("Loading configuration")
-
   M.config = table_merge(default_config, config)
   config = M.config
 
@@ -97,6 +94,8 @@ function M.normalized(config)
   ---@param lang_conf LangConfig
   for ft, lang_conf in pairs(config.languages) do
     ft = lang_conf.filetype or ft
+
+    -- this language is configurated with lsp-config backend
     if lang_conf.lsp and lang_conf.lsp ~= "" then
       lang_conf.lsp_config = lang_conf.lsp_config or {}
 
@@ -112,7 +111,10 @@ function M.normalized(config)
         conf = lang_conf.lsp_config
       }
       table.insert(M.config_lsp, clsp)
-    elseif lang_conf.fmt and lang_conf.fmt ~= "" then
+    -- this language is configurated with formatter.nvim as backend
+    elseif (lang_conf.fmt and lang_conf.fmt ~= "")
+        or (lang_conf.fmt_config and not next(lang_conf.fmt_config)
+        ) then
       lang_conf.fmt_config = lang_conf.fmt_config or {}
 
       cfmt = {
@@ -122,11 +124,12 @@ function M.normalized(config)
         conf = lang_conf.fmt_config
       }
       table.insert(M.config_fmt, cfmt)
+    else
+      vim.notify("Unconfigurated filetype: ".. ft)
     end
   end -- for loop end
 
   M.config["_normalized"] = true
-  utils.log_debug("Configuration is loaded")
 end
 
 return M
