@@ -1,44 +1,56 @@
+---@module 'manager'
+
 local M = {}
 
-
----@class LangDescriptor
----@field name string
----@field backend "formatter.nvim" | "lsp-config" | nil
-
----@type table<LangDescriptor> | {}
+---@type table<string, table<LangDescriptor>|LangDescriptor> | {}
 M.lang = {}
 
 ---@param ft string
 ---@param ldp LangDescriptor
 function M.push(ft, ldp)
+  assert(type(ft) == "string", "ft must be a string")
   if ldp and ldp.name and ldp.name ~= "" then
-    M.lang[ft] = ldp
+    if M.lang[ft] ~= nil then
+      M.lang[ft] = table.insert(M.lang[ft], ldp)
+    else
+      M.lang[ft] = ldp
+    end
   end
+end
+
+---A prettier output
+---@param ft string
+---@param ldp LangDescriptor
+---@return string
+local function format_with_indent(ft, ldp)
+  local ret = "[ " .. ldp.name .. " ]\n"
+  ret = ret .. "- filetype: " .. ft .. "\n"
+  ret = ret .. "-  backend: " .. ldp.backend .. "\n"
+  ret = ret .. "-     type: " .. ldp.type .. "\n"
+  return ret
 end
 
 function M.list()
   ---@param ft string
   ---@param ldp LangDescriptor
   for ft, ldp in pairs(M.lang) do
-    print(ldp.name .. ":")
-    print("  filetype: " .. ft)
-    print("  backend: " .. ldp.backend)
+    print(format_with_indent(ft, ldp))
   end
 end
 
 function M.show_config()
   local utils = require('union-lsp-formatter.utils')
-  utils.tabledump(require("union-lsp-formatter.config").config)
+  utils.tabledump(require("union-lsp-formatter").config)
 end
 
 function M.show_config_fmt()
   local utils = require('union-lsp-formatter.utils')
-  utils.tabledump(require("union-lsp-formatter.config").config_fmt)
+  utils.tabledump(require("union-lsp-formatter").config_fmt)
 end
 
 function M.show_config_lsp()
   local utils = require('union-lsp-formatter.utils')
-  utils.tabledump(require("union-lsp-formatter.config").config_lsp)
+  utils.tabledump(require("union-lsp-formatter").config_lsp)
 end
 
 function M.format()
@@ -52,16 +64,16 @@ function M.format()
     return
   end
 
-  local backend = lang.backend
+  local type = lang.type
 
-  if backend == "formatter.nvim" then
+  if type == "formatter.nvim" then
     formatter.format("", "", 1, vim.fn.line("$"))
     utils.log_info("Formatted with formatter.nvim")
-  elseif backend == "lsp-config" then
+  elseif type == "lsp-config" then
     vim.lsp.buf.format()
     utils.log_info("Formatted with LSP")
   else
-    utils.log_error("Unknow language server backend: " .. backend)
+    utils.log_error("Unknow fotmatter backend: " .. type)
   end
 end
 

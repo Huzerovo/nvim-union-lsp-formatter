@@ -10,10 +10,8 @@ function M.install(plugin)
 end
 
 local function log(msg, level)
-  if require('union-lsp-formatter.config').config.log_level > level then
-    return
-  end
-  vim.notify("UFM: " .. msg, level)
+  local label = "UFM: "
+  vim.notify(label .. msg, level)
 end
 
 function M.tabledump(tb)

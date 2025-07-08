@@ -17,29 +17,27 @@ local cmd = vim.api.nvim_create_user_command
 
 ---@type table<string, commands>
 local cmd_list = {
-    UFM = {
-        ---@param opts cb_opts
-        cb = function(opts)
-            if opts.args == 'list' then
-                require('union-lsp-formatter.manager').list()
-            elseif opts.args == "config" then
-                require('union-lsp-formatter.manager').show_config()
-            elseif opts.args == "fmt" then
-                require('union-lsp-formatter.manager').show_config_fmt()
-            elseif opts.args == "lsp" then
-                require('union-lsp-formatter.manager').show_config_lsp()
-            end
-        end,
-        nargs = 1,
-        desc = "Show configured formatteres"
-    }
+  UFM = {
+    ---@param opts cb_opts
+    cb = function(opts)
+      if opts.args == 'list' then
+        require('union-lsp-formatter.manager').list()
+      elseif opts.args == 'fmt' then
+        require('union-lsp-formatter.manager').show_config_fmt()
+      end
+    end,
+    nargs = 1,
+    desc = "Show configured formatteres"
+  }
 }
 
 vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
-    desc = "Create Union formatter Manager commands",
-    callback = function()
-        for k, v in pairs(cmd_list) do
-            cmd(k, v.cb, { nargs = v.nargs, desc = v.desc })
-        end
+  desc = "Create Union Formatter Manager commands",
+  callback = function()
+    for k, v in pairs(cmd_list) do
+      cmd(k, v.cb, { nargs = v.nargs, desc = v.desc })
     end
+  end
 })
+
+-- vim: ts=2 sts=2 sw=2
