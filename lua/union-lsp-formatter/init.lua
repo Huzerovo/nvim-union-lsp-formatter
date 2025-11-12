@@ -18,32 +18,36 @@ local M = {}
 ---@field prettier_plugin ?string -- prettier plugin, if use "prettier" as formatter, you may need a prettier pluging
 
 ---@class LspUnionConfig
----@field name string
 ---@field filetype string
----@field lsp string
----@field conf table
+---@field backend string
+---@field backend_conf ?table
 
 ---@class FmtUnionConfig
----@field name string
 ---@field filetype string
----@field fmt string
----@field conf table
+---@field backend string
+---@field backend_conf ?table
 
 ---@class LangDescriptor
 ---@field name string
 ---@field backend string
----@field type "formatter.nvim" | "lsp-config" | nil
+---@field type "formatter.nvim" | "lspconfig" | nil
 
 ---@type UnionConfig
 local default_config = {
   auto_install = false,
   install_path =
-      vim.fn.stdpath("data") .. "/union-lsp-formatter",
+      vim.fn.stdpath("data") .. "/union-lsp-formatter/prettier-plugins",
   log_level =
       vim.log.levels.TRACE,
   default_lsp_conf = {
-    capabilities =
-        require('cmp_nvim_lsp').default_capabilities(),
+    capabilities = {
+      textDocument = {
+        semanticTokens = {
+          multilineTokenSupport = true,
+        }
+      }
+    },
+    root_markers = { '.git' },
   },
   formatter_conf = {},
   languages = {},
@@ -58,7 +62,7 @@ M.config_lsp = {}
 ---@type table<FmtUnionConfig>
 M.config_fmt = {}
 
----Deep merge user config and default config
+---Deep merge table src to table dst
 ---@param dst UnionConfig
 ---@param src UnionConfig
 ---@return UnionConfig
@@ -83,48 +87,35 @@ local function normalized(config)
   M.config = table_merge(default_config, config)
   config = M.config
 
-  ---@type LspUnionConfig | {}
-  local clsp = {}
+  ---@param ft string
+  ---@param conf_language LangConfig
+  for ft, conf_language in pairs(config.languages) do
+    ft = conf_language.filetype or ft
 
-  ---@type FmtUnionConfig | {}
-  local cfmt = {}
-
-  ---@param ft string @param lang_conf LangConfig
-  for ft, lang_conf in pairs(config.languages) do
-    ft = lang_conf.filetype or ft
-
-    -- this language is configurated with lsp-config backend
-    if lang_conf.lsp and lang_conf.lsp ~= "" then
-      lang_conf.lsp_config = lang_conf.lsp_config or {}
-
-      -- if lsp_config is empty, use default_lsp_config
-      if not next(lang_conf.lsp_config) then
-        lang_conf.lsp_config = config.default_lsp_conf
-      end
-
-      clsp = {
-        name = lang_conf.name or ft,
+    if conf_language.lsp and conf_language.lsp ~= "" then
+      -- lspconfig as backend
+      table.insert(M.config_lsp, {
         filetype = ft,
-        lsp = lang_conf.lsp,
-        conf = lang_conf.lsp_config
-      }
-      table.insert(M.config_lsp, clsp)
-      -- this language is configurated with formatter.nvim as backend
-    elseif (lang_conf.fmt and lang_conf.fmt ~= "") or (lang_conf.fmt_config and
-          not next(lang_conf.fmt_config)) then
-      lang_conf.fmt_config = lang_conf.fmt_config or {}
-
-      cfmt = {
-        name = lang_conf.name or ft,
+        backend = conf_language.lsp,
+        backend_conf = conf_language.lsp_config or {}
+      })
+    elseif (conf_language.fmt and conf_language.fmt ~= "") 
+      or conf_language.fmt_config then
+      -- or (conf_language.fmt_config and not next(conf_language.fmt_config)) then --  什么鬼东西
+      -- formatter.nvim as backend
+      table.insert(M.config_fmt, {
         filetype = ft,
-        fmt = lang_conf.fmt,
-        conf = lang_conf.fmt_config
-      }
-      table.insert(M.config_fmt, cfmt)
+        backend = conf_language.fmt,
+        backend_conf = conf_language.fmt_config or {}
+      })
     end
   end -- for loop end
 
   return config
+end
+
+function filetype2lsp (config_lsp) 
+
 end
 
 ---@param config UnionConfig
@@ -137,18 +128,18 @@ function M.setup(config)
   -- Config for LSP
   ---@type table<LspUnionConfig>
   local config_lsp = M.config_lsp
+
   -- setup lspconfig
-  local lspconfig = require('lspconfig')
-  if (lspconfig ~= nil) then
-    ---@param v LspUnionConfig
-    for _, v in pairs(config_lsp) do
-      lspconfig[v.lsp].setup(v.conf)
-      manager.push(v.filetype, {
-        name = v.name,
-        backend = v.lsp,
-        type = "lsp-config",
-      })
-    end
+  vim.lsp.config('*', config.default_lsp_conf)
+
+  ---@param v LspUnionConfig
+  for _, v in pairs(config_lsp) do
+    -- lspconfig[v.lsp].setup(v.conf)
+    manager.push(v.filetype, {
+      name = v.name,
+      backend = v.lsp,
+      type = "lspconfig",
+    })
   end
 
   local formatter = require('formatter')

@@ -15,6 +15,7 @@ local config = {
             name = "", -- a friendly name
 
             lsp = "", -- lsp binary, if it is defined, use lspconfig as formatter
+            -- deprecated
             lsp_conf = {}, -- lsp config
 
             fmt_conf = {}, -- will be set to config.formatter.filetype[example_ft]
