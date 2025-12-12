@@ -14,6 +14,25 @@ local function log(msg, level)
   vim.notify(label .. msg, level)
 end
 
+---将src合并到dst，src值覆盖dst中的值
+---@param dst UnionConfig
+---@param src UnionConfig
+---@return UnionConfig
+function M.table_merge(dst, src)
+  local l = dst
+  local r = src
+  assert(type(l) == "table", "dst should be a table but get " .. type(l))
+  assert(type(r) == "table", "src should be a table but get " .. type(r))
+  for k, v in pairs(r) do
+    if l[k] == nil or type(l[k]) ~= "table" or type(v) ~= "table" then
+      l[k] = v
+    else
+      M.table_merge(l[k], v)
+    end
+  end
+  return dst
+end
+
 function M.tabledump(tb)
   local function sub_print_r(t, indent)
     if (type(t) == "table") then
