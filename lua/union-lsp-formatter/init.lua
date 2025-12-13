@@ -69,9 +69,9 @@ local function normalized(default_config, user_config)
         table.insert(cfg_fmt_ft, {
           filetype = ft,
           fmt = conf_lang.fmt,
-          fmt_spec = conf_lang.fmt_config or {}
+          fmt_spec = conf_lang.fmt_spec or {}
         })
-      else
+      elseif not conf_lang.fmt_spec then
         utils.log_warn("language "..ft.." configurated without lspconfig and formatter.")
       end
       ---@TODO install pretter plugin
@@ -150,7 +150,7 @@ local default_config = {
   install_path =
       vim.fn.stdpath("data") .. "/union-lsp-formatter/prettier-plugins",
   log_level =
-      vim.log.levels.TRACE,
+      vim.log.levels.ERROR,
   default_lsp_conf = {
     capabilities = {
       textDocument = {
