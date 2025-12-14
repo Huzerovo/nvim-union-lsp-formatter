@@ -24,8 +24,7 @@ local M = {}
 ---@field fmt_spec ?function
 
 ---@class LangDescriptor
----@field name string
----@field backend string
+---@field backend string | nil
 ---@field type "formatter.nvim" | "lspconfig" | nil
 
 
@@ -44,8 +43,9 @@ M.config_fmt_ft = {}
 ---将user_config转化为config_lsp以及config_fmt
 ---@param default_config UnionConfig
 ---@param user_config UnionConfig | {}
-local function normalized(default_config, user_config)
+local function conver(default_config, user_config)
   local utils = require('union-lsp-formatter.utils')
+  local manager = require('union-lsp-formatter.manager')
   ---@type UnionConfig
   local cfg = utils.table_merge(default_config, user_config)
 
@@ -58,6 +58,8 @@ local function normalized(default_config, user_config)
   ---@type table<FormatterFiletypeConfig>
   local cfg_fmt_ft = {}
 
+  ---@type LangDescriptor
+  local ldp = {}
   ---@param ft string
   ---@param conf_lang LangConfig
   for ft, conf_lang in pairs(cfg.languages) do
@@ -65,20 +67,33 @@ local function normalized(default_config, user_config)
       if conf_lang.lsp then
         -- lspconfig as backend
         table.insert(cfg_lsp.backend, conf_lang.lsp)
+        ldp.backend = conf_lang.lsp
+        ldp.type = "lspconfig"
       elseif conf_lang.fmt then
         table.insert(cfg_fmt_ft, {
           filetype = ft,
           fmt = conf_lang.fmt,
-          fmt_spec = conf_lang.fmt_spec or {}
         })
-      elseif not conf_lang.fmt_spec then
-        utils.log_warn("language "..ft.." configurated without lspconfig and formatter.")
+        ldp.backend = conf_lang.fmt
+        ldp.type = "formatter.nvim"
+      elseif conf_lang.fmt_spec then
+        table.insert(cfg_fmt_ft, {
+          filetype = ft,
+          fmt_spec = conf_lang.fmt_spec
+        })
+        ldp.backend = "fmt_spec"
+        ldp.type = "formatter.nvim"
+      else
+        ldp.backend = nil
+        ldp.type = nil
+        utils.log_warn("language " .. ft .. " configurated without lspconfig and formatter.")
       end
       ---@TODO install pretter plugin
+      manager.push(ft, ldp)
     end
   end -- for loop end
 
-  return cfg,cfg_lsp,cfg_fmt_ft
+  return cfg, cfg_lsp, cfg_fmt_ft
 end
 
 ---@param config_lsp LspConfig
@@ -97,7 +112,6 @@ local function setup_lspconfig(config_lsp)
   --     type = "lspconfig",
   --   })
   -- end
-
 end
 
 ---@param config_fmt table
@@ -117,7 +131,7 @@ local function setup_formatter(config_fmt, config_fmt_ft)
   ---@param ffc FormatterFiletypeConfig
   for _, ffc in pairs(config_fmt_ft) do
     if ffc.filetype then
-      formatter_filetype[ffc.filetype] = {ffc.fmt , ffc.fmt_spec }
+      formatter_filetype[ffc.filetype] = { ffc.fmt, ffc.fmt_spec }
     end
   end
 
@@ -144,37 +158,35 @@ end
 
 ---@param user_config UnionConfig
 function M.setup(user_config)
----@type UnionConfig
-local default_config = {
-  auto_install = false,
-  install_path =
-      vim.fn.stdpath("data") .. "/union-lsp-formatter/prettier-plugins",
-  log_level =
-      vim.log.levels.ERROR,
-  default_lsp_conf = {
-    capabilities = {
-      textDocument = {
-        semanticTokens = {
-          multilineTokenSupport = true,
+  ---@type UnionConfig
+  local default_config = {
+    auto_install = false,
+    install_path =
+        vim.fn.stdpath("data") .. "/union-lsp-formatter/prettier-plugins",
+    log_level =
+        vim.log.levels.ERROR,
+    default_lsp_conf = {
+      capabilities = {
+        textDocument = {
+          semanticTokens = {
+            multilineTokenSupport = true,
+          }
         }
-      }
+      },
+      root_markers = { '.git' },
     },
-    root_markers = { '.git' },
-  },
-  formatter_conf = {},
+    formatter_conf = {},
 
-  ---@type LangConfig
-  languages = {},
-}
+    ---@type LangConfig
+    languages = {},
+  }
 
 
-  M.config , M.config_lsp , M.config_fmt_ft = normalized(default_config, user_config or {})
+  M.config, M.config_lsp, M.config_fmt_ft = conver(default_config, user_config or {})
 
   setup_lspconfig(M.config_lsp)
 
   setup_formatter(M.config.formatter_conf, M.config_fmt_ft)
-
-  local manager = require('union-lsp-formatter.manager')
 
   require('union-lsp-formatter.autocmd')
 end

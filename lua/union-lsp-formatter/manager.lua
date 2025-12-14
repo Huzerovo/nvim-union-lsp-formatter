@@ -9,12 +9,10 @@ M.lang = {}
 ---@param ldp LangDescriptor
 function M.push(ft, ldp)
   assert(type(ft) == "string", "ft must be a string")
-  if ldp and ldp.name and ldp.name ~= "" then
-    if M.lang[ft] ~= nil then
-      M.lang[ft] = table.insert(M.lang[ft], ldp)
-    else
-      M.lang[ft] = ldp
-    end
+  if M.lang[ft] ~= nil then
+    M.lang[ft] = table.insert(M.lang[ft], ldp)
+  else
+    M.lang[ft] = ldp
   end
 end
 
@@ -23,10 +21,9 @@ end
 ---@param ldp LangDescriptor
 ---@return string
 local function format_with_indent(ft, ldp)
-  local ret = "[ " .. ldp.name .. " ]\n"
-  ret = ret .. "- filetype: " .. ft .. "\n"
-  ret = ret .. "-  backend: " .. ldp.backend .. "\n"
-  ret = ret .. "-     type: " .. ldp.type .. "\n"
+  local ret = "[ " .. ft .. " ]\n"
+  ret = ret .. "- backend: " .. ldp.backend .. "\n"
+  ret = ret .. "-    type: " .. ldp.type .. "\n"
   return ret
 end
 
@@ -34,7 +31,11 @@ function M.list()
   ---@param ft string
   ---@param ldp LangDescriptor
   for ft, ldp in pairs(M.lang) do
-    print(format_with_indent(ft, ldp))
+    if (not ldp) or (ldp == {}) then
+      print("Missing configuration for [ " .. ft .. " ]\n")
+    else
+      print(format_with_indent(ft, ldp))
+    end
   end
 end
 
@@ -69,7 +70,7 @@ function M.format()
   if type == "formatter.nvim" then
     formatter.format("", "", 1, vim.fn.line("$"))
     utils.log_info("Formatted with formatter.nvim")
-  elseif type == "lsp-config" then
+  elseif type == "lspconfig" then
     vim.lsp.buf.format()
     utils.log_info("Formatted with LSP")
   else
