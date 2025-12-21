@@ -22,8 +22,13 @@ end
 ---@return string
 local function format_with_indent(ft, ldp)
   local ret = "[ " .. ft .. " ]\n"
-  ret = ret .. "- backend: " .. ldp.backend .. "\n"
-  ret = ret .. "-    type: " .. ldp.type .. "\n"
+  ret = ret .. "  backend: "
+  if type(ldp.backend) == "table" then
+    ret = ret .. "<fmt_spec> " .. require("union-lsp-formatter.utils").table_to_string(ldp.backend) .. "\n"
+  else
+    ret = ret .. ldp.backend .. "\n"
+  end
+  ret = ret .. "  type: " .. ldp.type .. "\n"
   return ret
 end
 
@@ -41,17 +46,17 @@ end
 
 function M.show_config()
   local utils = require('union-lsp-formatter.utils')
-  utils.tabledump(require("union-lsp-formatter").config)
+  print(utils.table_to_string(require("union-lsp-formatter").config))
 end
 
 function M.show_config_fmt()
   local utils = require('union-lsp-formatter.utils')
-  utils.tabledump(require("union-lsp-formatter").config_fmt)
+  print(utils.table_to_string(require("union-lsp-formatter").config_fmt))
 end
 
 function M.show_config_lsp()
   local utils = require('union-lsp-formatter.utils')
-  utils.tabledump(require("union-lsp-formatter").config_lsp)
+  print(utils.table_to_string(require("union-lsp-formatter").config_lsp))
 end
 
 function M.format()

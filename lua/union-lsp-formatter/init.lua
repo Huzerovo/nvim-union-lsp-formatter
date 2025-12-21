@@ -11,7 +11,7 @@ local M = {}
 ---@class LangConfig
 ---@field lsp ?string -- lsp backend name
 ---@field fmt ?string -- formatter name, it can be the formatter.nvim default formatter for lang
----@field fmt_spec ?function -- See :help formatter-config-spec
+---@field fmt_spec ?table -- See :help formatter-config-spec
 ---@field prettier_plugin ?string -- prettier plugin, if use "prettier" as formatter, you may need a prettier pluging
 
 ---@class LspConfig
@@ -21,10 +21,10 @@ local M = {}
 ---@class FormatterFiletypeConfig
 ---@field filetype ?string
 ---@field fmt ?string
----@field fmt_spec ?function
+---@field fmt_spec ?table
 
 ---@class LangDescriptor
----@field backend string | nil
+---@field backend string | table | nil
 ---@field type "formatter.nvim" | "lspconfig" | nil
 
 
@@ -79,9 +79,9 @@ local function conver(default_config, user_config)
       elseif conf_lang.fmt_spec then
         table.insert(cfg_fmt_ft, {
           filetype = ft,
-          fmt_spec = conf_lang.fmt_spec
+          fmt_spec = conf_lang.fmt_spec,
         })
-        ldp.backend = "fmt_spec"
+        ldp.backend = conf_lang.fmt_spec
         ldp.type = "formatter.nvim"
       else
         ldp.backend = nil
@@ -90,6 +90,7 @@ local function conver(default_config, user_config)
       end
       ---@TODO install pretter plugin
       manager.push(ft, ldp)
+      ldp = {}
     end
   end -- for loop end
 
@@ -131,7 +132,7 @@ local function setup_formatter(config_fmt, config_fmt_ft)
   ---@param ffc FormatterFiletypeConfig
   for _, ffc in pairs(config_fmt_ft) do
     if ffc.filetype then
-      formatter_filetype[ffc.filetype] = { ffc.fmt, ffc.fmt_spec }
+      formatter_filetype[ffc.filetype] = { ffc.fmt, function() return ffc.fmt_spec end }
     end
   end
 

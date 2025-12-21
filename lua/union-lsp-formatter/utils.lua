@@ -2,6 +2,9 @@
 
 local M = {}
 
+local MAX_DEEP = 10
+local INDENT_SPACE = "  "
+
 -- Install a prettier plugin
 ---@param plugin string
 function M.install(plugin)
@@ -33,36 +36,48 @@ function M.table_merge(dst, src)
   return dst
 end
 
-function M.tabledump(tb)
-  local function sub_print_r(t, indent)
-    if (type(t) == "table") then
-      for pos, val in pairs(t) do
+local function format_table_with_indent(t, indent, deep)
+  if deep > MAX_DEEP then
+    return indent .. "<...>\n"
+  end
+  local table_output = ""
+  if (type(t) == "table") then
+    for pos, val in pairs(t) do
+      if (type(pos) == "number") then
+        table_output = table_output .. format_table_with_indent(val, indent, deep + 1)
+      else
         if (type(val) == "table") then
-          if (type(pos) == 'number') then
-            print(indent .. "{")
-          else
-            print(indent .. pos .. " = {")
-          end
-          sub_print_r(val, indent .. "  ")
-          print(indent .. "},")
-        elseif (type(val) == "string") then
-          print(indent .. pos .. ' = "' .. val .. '"')
+          table_output = table_output .. indent .. pos .. " = {\n"
+          table_output = table_output .. format_table_with_indent(val, indent .. INDENT_SPACE, deep + 1)
+          table_output = table_output .. indent .. "},\n"
         else
-          print(indent .. pos .. " = " .. tostring(val))
+          table_output = table_output .. indent .. pos .. " = " .. tostring(val) .. ",\n"
         end
       end
-    else
-      print(indent .. tostring(t))
+      -- if (type(val) == "table") then
+      --   if (type(pos) == 'number') then
+      --     table_output = table_output .. indent .. "{\n"
+      --   else
+      --     table_output = table_output .. indent .. pos .. " = {\n"
+      --   end
+      --   table_output = table_output .. format_table_with_indent(val, indent .. "  ", deep + 1)
+      --   table_output = table_output .. indent .. "},"
+      -- else
+      --   table_output = table_output .. indent .. pos .. " = " .. tostring(val)
+      -- end
     end
-  end
-  if (type(tb) == "table") then
-    print("{")
-    sub_print_r(tb, "  ")
-    print("}")
   else
-    sub_print_r(tb, "  ")
+    table_output = table_output .. indent .. tostring(t) .. ",\n"
   end
-  print()
+
+  return table_output
+end
+
+function M.table_to_string(tb)
+  assert(tb ~= nil, "table_to_string: input is nil")
+  assert(type(tb) == "table", "table_to_string: input should be table but get " .. type(tb))
+
+  return "{\n" .. format_table_with_indent(tb, INDENT_SPACE .. INDENT_SPACE, 0) .. INDENT_SPACE .. "}"
 end
 
 function M.log_debug(msg)
