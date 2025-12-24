@@ -7,33 +7,26 @@ local INDENT_SPACE = "  "
 
 -- Install a prettier plugin
 ---@param plugin string
-function M.install(plugin)
-  -- TODO impl
-  error("No impl")
-end
-
-local function log(msg, level)
-  local label = "UFM: "
-  vim.notify(label .. msg, level)
-end
-
----将src合并到dst，src值覆盖dst中的值
----@param dst UnionConfig
----@param src UnionConfig
----@return UnionConfig
-function M.table_merge(dst, src)
-  local l = dst
-  local r = src
-  assert(type(l) == "table", "dst should be a table but get " .. type(l))
-  assert(type(r) == "table", "src should be a table but get " .. type(r))
-  for k, v in pairs(r) do
-    if l[k] == nil or type(l[k]) ~= "table" or type(v) ~= "table" then
-      l[k] = v
-    else
-      M.table_merge(l[k], v)
-    end
+function M.install_prettier_plugin(plugin)
+  local logger = require('union-lsp-formatter.logger')
+  logger.i("Installing plugin: " .. plugin)
+  local install_path = M.get_install_path()
+  local cmd = "npm install --prefix " .. install_path .. " " .. plugin
+  logger.d("Running command: " .. cmd)
+  local result = os.execute(cmd)
+  if result == 0 then
+    logger.i("Successfully installed plugin: " .. plugin)
+  else
+    logger.e("Failed to install plugin: " .. plugin)
   end
-  return dst
+end
+
+---@return string
+function M.get_install_path()
+  if require('union-lsp-formatter').config.install_path ~= nil then
+    return require('union-lsp-formatter').config.install_path
+  end
+  return vim.fn.stdpath('data') .. "/union-lsp-formatter/prettier-plugins"
 end
 
 local function format_table_with_indent(t, indent, deep)
@@ -44,7 +37,13 @@ local function format_table_with_indent(t, indent, deep)
   if (type(t) == "table") then
     for pos, val in pairs(t) do
       if (type(pos) == "number") then
-        table_output = table_output .. format_table_with_indent(val, indent, deep + 1)
+        if (type(val) == "table") then
+          table_output = table_output .. indent .. "{\n"
+          table_output = table_output .. format_table_with_indent(val, indent .. INDENT_SPACE, deep + 1)
+          table_output = table_output .. indent .. "},\n"
+        else
+          table_output = table_output .. indent .. tostring(val) .. ",\n"
+        end
       else
         if (type(val) == "table") then
           table_output = table_output .. indent .. pos .. " = {\n"
@@ -78,22 +77,6 @@ function M.table_to_string(tb)
   assert(type(tb) == "table", "table_to_string: input should be table but get " .. type(tb))
 
   return "{\n" .. format_table_with_indent(tb, INDENT_SPACE .. INDENT_SPACE, 0) .. INDENT_SPACE .. "}"
-end
-
-function M.log_debug(msg)
-  log(msg, vim.log.levels.DEBUG)
-end
-
-function M.log_info(msg)
-  log(msg, vim.log.levels.INFO)
-end
-
-function M.log_warn(msg)
-  log(msg, vim.log.levels.WARN)
-end
-
-function M.log_error(msg)
-  log(msg, vim.log.levels.ERROR)
 end
 
 return M

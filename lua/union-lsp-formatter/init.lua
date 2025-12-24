@@ -40,14 +40,32 @@ M.config_lsp = {}
 ---@type table<FormatterFiletypeConfig>
 M.config_fmt_ft = {}
 
+---将src合并到dst，src值覆盖dst中的值
+---@param dst UnionConfig
+---@param src UnionConfig
+---@return UnionConfig
+local function table_merge(dst, src)
+  local l = dst
+  local r = src
+  assert(type(l) == "table", "dst should be a table but get " .. type(l))
+  assert(type(r) == "table", "src should be a table but get " .. type(r))
+  for k, v in pairs(r) do
+    if l[k] == nil or type(l[k]) ~= "table" or type(v) ~= "table" then
+      l[k] = v
+    else
+      table_merge(l[k], v)
+    end
+  end
+  return dst
+end
+
 ---将user_config转化为config_lsp以及config_fmt
 ---@param default_config UnionConfig
 ---@param user_config UnionConfig | {}
 local function conver(default_config, user_config)
-  local utils = require('union-lsp-formatter.utils')
   local manager = require('union-lsp-formatter.manager')
   ---@type UnionConfig
-  local cfg = utils.table_merge(default_config, user_config)
+  local cfg = table_merge(default_config, user_config)
 
   ---@type LspConfig
   local cfg_lsp = {
@@ -86,7 +104,9 @@ local function conver(default_config, user_config)
       else
         ldp.backend = nil
         ldp.type = nil
-        utils.log_warn("language " .. ft .. " configurated without lspconfig and formatter.")
+        require('union-lsp-formatter.logger').w(
+          "language " .. ft .. " configurated without lspconfig and formatter."
+        )
       end
       ---@TODO install pretter plugin
       manager.push(ft, ldp)

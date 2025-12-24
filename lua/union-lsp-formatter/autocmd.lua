@@ -24,10 +24,14 @@ local cmd_list = {
         require('union-lsp-formatter.manager').list()
       elseif opts.args == 'fmt' then
         require('union-lsp-formatter.manager').show_config_fmt()
+      elseif opts.args == 'lsp' then
+        require('union-lsp-formatter.manager').show_config_lsp()
+      elseif opts.args == 'conf' then
+        require('union-lsp-formatter.manager').show_config()
       end
     end,
     nargs = 1,
-    desc = "Show configured formatteres"
+    desc = "Show configurations"
   }
 }
 
