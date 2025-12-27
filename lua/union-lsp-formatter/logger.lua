@@ -1,3 +1,5 @@
+---@module "logger"
+
 local M = {}
 local TAG = "UFM"
 

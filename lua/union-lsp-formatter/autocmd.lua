@@ -1,6 +1,3 @@
-local cmd = vim.api.nvim_create_user_command
-
-
 ---This is the parameters for {command}.
 ---See `:help nvim_create_user_command()`
 ---@class cb_opts
@@ -35,13 +32,20 @@ local cmd_list = {
   }
 }
 
+vim.api.nvim_create_augroup("UFMCommands", { clear = true })
+
 vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
+  group = "UFMCommands",
   desc = "Create Union Formatter Manager commands",
   callback = function()
     for k, v in pairs(cmd_list) do
-      cmd(k, v.cb, { nargs = v.nargs, desc = v.desc })
+      vim.api.nvim_create_user_command(k, v.cb, {
+        nargs = v.nargs,
+        desc = v.desc
+      })
     end
-  end
+  end,
 })
+
 
 -- vim: ts=2 sts=2 sw=2

@@ -21,7 +21,7 @@ local M = {}
 ---@class FormatterFiletypeConfig
 ---@field filetype ?string
 ---@field fmt ?string
----@field fmt_spec ?table
+---@field fmt_spec function | table | nil
 
 ---@class LangDescriptor
 ---@field backend string | table | nil
@@ -95,10 +95,18 @@ local function conver(default_config, user_config)
         ldp.backend = conf_lang.fmt
         ldp.type = "formatter.nvim"
       elseif conf_lang.fmt_spec then
-        table.insert(cfg_fmt_ft, {
-          filetype = ft,
-          fmt_spec = conf_lang.fmt_spec,
-        })
+        if type(conf_lang.fmt_spec) == "function" then
+          table.insert(cfg_fmt_ft, {
+            filetype = ft,
+            fmt_spec = "function",
+            -- fmt_spec = conf_lang.fmt_spec,
+          })
+        elseif type(conf_lang.fmt_spec) == "table" then
+          table.insert(cfg_fmt_ft, {
+            filetype = ft,
+            fmt_spec = conf_lang.fmt_spec,
+          })
+        end
         ldp.backend = conf_lang.fmt_spec
         ldp.type = "formatter.nvim"
       else
@@ -125,14 +133,6 @@ local function setup_lspconfig(config_lsp)
   for _, lsp in pairs(config_lsp.backend) do
     vim.lsp.enable(lsp)
   end
-
-  -- for _, v in pairs(config_lsp) do
-  --   manager.push(v.filetype, {
-  --     name = v.name,
-  --     backend = v.lsp,
-  --     type = "lspconfig",
-  --   })
-  -- end
 end
 
 ---@param config_fmt table
@@ -152,29 +152,25 @@ local function setup_formatter(config_fmt, config_fmt_ft)
   ---@param ffc FormatterFiletypeConfig
   for _, ffc in pairs(config_fmt_ft) do
     if ffc.filetype then
-      formatter_filetype[ffc.filetype] = { ffc.fmt, function() return ffc.fmt_spec end }
+      if ffc.fmt_spec and type(ffc.fmt_spec) == "function" then
+        formatter_filetype[ffc.filetype] = { ffc.fmt_spec }
+      elseif ffc.fmt_spec and type(ffc.fmt_spec) == "table" then
+        formatter_filetype[ffc.filetype] = {
+          function()
+            return ffc.fmt_spec
+          end
+        }
+      elseif ffc.fmt and type(ffc.fmt) == "string" then
+        formatter_filetype[ffc.filetype] = {
+          require("formatter.filetypes." .. ffc.filetype)[ffc.fmt]
+        }
+      end
     end
   end
 
   config_fmt.filetype = formatter_filetype
 
   formatter.setup(config_fmt)
-
-  -- ---@param v FormatterConfig
-  -- for _, v in pairs(config_fmt) do
-  --   if not next(v.conf) then
-  --     filetypes[v.filetype] = formatter[v.filetype][v.fmt]
-  --   else
-  --     filetypes[v.filetype] = v.conf
-  --   end
-  --   -- manager.push(v.filetype, {
-  --   --   name = v.filetype,
-  --   --   backend = v.fmt,
-  --   --   type = "formatter.nvim",
-  --   -- })
-  -- end
-  -- config.formatter_conf.filetype = filetypes
-  -- formatter.setup(config.formatter_conf)
 end
 
 ---@param user_config UnionConfig

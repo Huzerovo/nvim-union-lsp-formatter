@@ -2,6 +2,9 @@
 
 local M = {}
 
+local logger = require('union-lsp-formatter.logger')
+local utils = require('union-lsp-formatter.utils')
+
 ---@class Lang
 ---@field ldp LangDescriptor
 ---@field format_callback function | nil
@@ -19,17 +22,13 @@ function M.push(ft, ldp)
     ldp = ldp,
     format_callback = nil
   }
-  -- if M.lang[ft] ~= nil then
-  --   M.lang[ft].ldp = table.insert(M.lang[ft].ldp, ldp)
-  -- else
-  --   M.lang[ft].ldp = ldp
-  -- end
-  local logger = require('union-lsp-formatter.logger')
   if ldp.type == "formatter.nvim" then
     local formatter = require('formatter.format')
     M.lang[ft].format_callback = function()
       logger.d("Formatting with formatter.nvim for filetype: " .. ft)
-      formatter.format("", "", 1, vim.fn.line("$"))
+      if not formatter.format("", "", 1, vim.fn.line("$")) then
+        logger.w("Failed to format with formatter.nvim for filetype: " .. ft)
+      end
     end
   elseif ldp.type == "lspconfig" then
     M.lang[ft].format_callback = function()
@@ -49,7 +48,7 @@ local function format_with_indent(ft, ldp)
   local ret = ft .. ":"
   ret = ret .. " (" .. ldp.type .. ") "
   if type(ldp.backend) == "table" then
-    ret = ret .. "<fmt_spec> " .. require("union-lsp-formatter.utils").table_to_string(ldp.backend) .. "\n"
+    ret = ret .. "<fmt_spec> " .. utils.table_to_string(ldp.backend) .. "\n"
   else
     ret = ret .. ldp.backend .. "\n"
   end
@@ -69,29 +68,34 @@ function M.list()
 end
 
 function M.show_config()
-  local utils = require('union-lsp-formatter.utils')
   print(utils.table_to_string(require("union-lsp-formatter").config))
 end
 
 function M.show_config_fmt()
-  local utils = require('union-lsp-formatter.utils')
   print(utils.table_to_string(require("union-lsp-formatter").config_fmt_ft))
 end
 
 function M.show_config_lsp()
-  local utils = require('union-lsp-formatter.utils')
   print(utils.table_to_string(require("union-lsp-formatter").config_lsp))
 end
 
-function M.install(plugin)
-  local utils = require('union-lsp-formatter.utils')
-  utils.install_prettier_plugin(plugin)
-  M.installed_plugins[plugin] = true
+function M.install(package)
+  if package == "prettier" then
+    if utils.is_prettier_installed() then
+      return
+    end
+    utils.install_prettier()
+    return
+  end
+
+  if utils.is_prettier_plugin_installed(package) then
+    return
+  end
+  utils.install_prettier_plugin(package)
+  M.installed_plugins[package] = true
 end
 
 function M.format()
-  -- local formatter = require('formatter.format')
-  local logger = require('union-lsp-formatter.logger')
   local ft = vim.bo.filetype
 
   local lang = M.lang[ft]
@@ -100,18 +104,6 @@ function M.format()
     return
   end
   lang.format_callback()
-
-  -- local type = lang.ldp.type
-
-  -- if type == "formatter.nvim" then
-  --   formatter.format("", "", 1, vim.fn.line("$"))
-  --   logger.i("Formatted with formatter.nvim")
-  -- elseif type == "lspconfig" then
-  --   vim.lsp.buf.format()
-  --   logger.i("Formatted with LSP")
-  -- else
-  --   logger.e("Unknow fotmatter backend: " .. type)
-  -- end
 end
 
 return M
