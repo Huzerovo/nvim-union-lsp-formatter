@@ -5,6 +5,10 @@ local M = {}
 local logger = require('union-lsp-formatter.logger')
 local utils = require('union-lsp-formatter.utils')
 
+---@class LangDescriptor
+---@field backend string | table | nil
+---@field type "formatter.nvim" | "lspconfig" | nil
+
 ---@class Lang
 ---@field ldp LangDescriptor
 ---@field format_callback function | nil
@@ -45,10 +49,11 @@ end
 ---@param ldp LangDescriptor
 ---@return string
 local function format_with_indent(ft, ldp)
-  local ret = ft .. ":"
-  ret = ret .. " (" .. ldp.type .. ") "
+  ret = "(" .. ldp.type .. ") " .. ft .. " => "
   if type(ldp.backend) == "table" then
     ret = ret .. "<fmt_spec> " .. utils.table_to_string(ldp.backend) .. "\n"
+  elseif type(ldp.backend) == "function" then
+    ret = ret .. "<fmt_spec> custom function\n"
   else
     ret = ret .. ldp.backend .. "\n"
   end
@@ -58,12 +63,26 @@ end
 function M.list()
   ---@param ft string
   ---@param l LangDescriptor
+  local lsp_group = ""
+  local fmt_group = ""
+  local Unknow_group = ""
   for ft, l in pairs(M.lang) do
     if (not l) or (not l.ldp) or (l.ldp == {}) then
       print("Missing configuration for [ " .. ft .. " ]\n")
     else
-      print(format_with_indent(ft, l.ldp))
+      if l.ldp.type == "lspconfig" then
+        lsp_group = lsp_group .. format_with_indent(ft, l.ldp)
+      elseif l.ldp.type == "formatter.nvim" then
+        fmt_group = fmt_group .. format_with_indent(ft, l.ldp)
+      else
+        Unknow_group = Unknow_group .. "Unknow backend for [ " .. ft .. " ]"
+      end
     end
+  end
+  print(lsp_group)
+  print(fmt_group)
+  if (Unknow_group ~= "") then
+    print(Unknow_group)
   end
 end
 

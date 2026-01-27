@@ -120,18 +120,20 @@ function M.is_prettier_plugin_installed(plugin)
 end
 
 ---安装prettier
+---@return boolean
 function M.install_prettier()
   logger.i("Installing prettier...")
   local install_path = M.get_install_path()
-  install_npm_package("prettier", install_path)
+  return install_npm_package("prettier", install_path)
 end
 
 ---安装prettier插件
 ---@param plugin string
+---@return boolean
 function M.install_prettier_plugin(plugin)
   logger.i("Installing plugin: " .. plugin)
   local install_path = M.get_install_path()
-  install_npm_package(plugin, install_path)
+  return install_npm_package(plugin, install_path)
 end
 
 ---获取prettier可执行文件路径

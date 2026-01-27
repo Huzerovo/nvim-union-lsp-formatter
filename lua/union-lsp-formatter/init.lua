@@ -23,11 +23,6 @@ local M = {}
 ---@field fmt ?string
 ---@field fmt_spec function | table | nil
 
----@class LangDescriptor
----@field backend string | table | nil
----@field type "formatter.nvim" | "lspconfig" | nil
-
-
 --初始化为默认配置
 ---@type UnionConfig
 M.config = {}
@@ -63,6 +58,7 @@ end
 ---@param default_config UnionConfig
 ---@param user_config UnionConfig | {}
 local function conver(default_config, user_config)
+  local logger = require('union-lsp-formatter.logger')
   local manager = require('union-lsp-formatter.manager')
   ---@type UnionConfig
   local cfg = table_merge(default_config, user_config)
@@ -78,11 +74,14 @@ local function conver(default_config, user_config)
 
   ---@type LangDescriptor
   local ldp = {}
+
   ---@param ft string
   ---@param conf_lang LangConfig
   for ft, conf_lang in pairs(cfg.languages) do
     if conf_lang then
       if conf_lang.lsp then
+        assert(type(conf_lang.lsp) == "string",
+          "lsp field for filetype " .. ft .. " should be string")
         -- lspconfig as backend
         table.insert(cfg_lsp.backend, conf_lang.lsp)
         ldp.backend = conf_lang.lsp
@@ -98,13 +97,12 @@ local function conver(default_config, user_config)
         if type(conf_lang.fmt_spec) == "function" then
           table.insert(cfg_fmt_ft, {
             filetype = ft,
-            fmt_spec = "function",
-            -- fmt_spec = conf_lang.fmt_spec,
+            fmt_spec = conf_lang.fmt_spec,
           })
         elseif type(conf_lang.fmt_spec) == "table" then
           table.insert(cfg_fmt_ft, {
             filetype = ft,
-            fmt_spec = conf_lang.fmt_spec,
+            fmt_spec = function() return conf_lang.fmt_spec end,
           })
         end
         ldp.backend = conf_lang.fmt_spec
@@ -112,7 +110,7 @@ local function conver(default_config, user_config)
       else
         ldp.backend = nil
         ldp.type = nil
-        require('union-lsp-formatter.logger').w(
+        logger.w(
           "language " .. ft .. " configurated without lspconfig and formatter."
         )
       end
