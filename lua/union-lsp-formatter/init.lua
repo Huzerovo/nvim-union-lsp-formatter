@@ -2,6 +2,7 @@ local M = {}
 
 ---@class UnionConfig
 ---@field auto_install ?boolean
+---@filed prettier_bin ?string
 ---@field install_path ?string
 ---@field log_level ?number
 ---@field default_lsp_conf ?table

@@ -12,40 +12,58 @@
 ---@field nargs number
 ---@field desc string
 
+local UFM_CMD = "UFM"
+local UFM_GROUP = "UFMCommands"
+
 ---@type table<string, commands>
+local manager = require('union-lsp-formatter.manager')
 local cmd_list = {
-  UFM = {
-    ---@param opts cb_opts
-    cb = function(opts)
-      if opts.args == 'list' then
-        require('union-lsp-formatter.manager').list()
-      elseif opts.args == 'fmt' then
-        require('union-lsp-formatter.manager').show_config_fmt()
-      elseif opts.args == 'lsp' then
-        require('union-lsp-formatter.manager').show_config_lsp()
-      elseif opts.args == 'conf' then
-        require('union-lsp-formatter.manager').show_config()
-      end
-    end,
-    nargs = 1,
-    desc = "Show configurations"
+  list = {
+    cb = manager.list,
+    desc = "List configurated filetype."
+
+  },
+  fmt = {
+    cb = manager.show_config_fmt,
+    desc = "Show formatter.format configuration."
+  },
+  lsp = {
+    cb = manager.show_config_lsp,
+    desc = "show lspconfig configuration."
+  },
+  config = {
+    cb = manager.show_config,
+    desc = "Show plugin configuration."
   }
 }
 
-vim.api.nvim_create_augroup("UFMCommands", { clear = true })
+local cmd_callback = function(opts)
+  local cmd = opts.args
+  if not cmd_list[cmd] then
+    return false
+  end
 
-vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
-  group = "UFMCommands",
-  desc = "Create Union Formatter Manager commands",
-  callback = function()
-    for k, v in pairs(cmd_list) do
-      vim.api.nvim_create_user_command(k, v.cb, {
-        nargs = v.nargs,
-        desc = v.desc
-      })
-    end
-  end,
-})
+  cmd_list[cmd].cb()
+end
+
+local commands_list = function()
+  local ret = {}
+  for i in pairs(cmd_list) do
+    table.insert(ret, i)
+  end
+  return ret
+end
+
+vim.api.nvim_create_user_command(
+  UFM_CMD,
+  cmd_callback,
+  {
+    bang = false,
+    nargs = 1,
+    desc = "Union Formatter Manager commands",
+    complete = commands_list,
+  }
+)
 
 
 -- vim: ts=2 sts=2 sw=2
