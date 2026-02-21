@@ -230,7 +230,7 @@ function M.format()
   local ft = vim.bo.filetype
 
   local lang = M.lang[ft]
-  if lang.format_callback == nil then
+  if (not lang) or lang.format_callback == nil then
     logger.w("No language server backend for filetype: " .. ft)
     return
   end
